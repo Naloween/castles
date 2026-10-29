@@ -680,8 +680,7 @@
           payment,
           paymentPerson: payment / people,
           capacity,
-          surfacePerson:
-            capacity && h.surface != null ? h.surface / capacity : null,
+          surfacePerson: h.surface != null ? h.surface / people : null,
           taxAnnual,
           chargesAnnual,
           allInMonthly,
@@ -721,6 +720,7 @@
         $("thresholdOut").textContent = euro(+$("threshold").value) + "/mois";
       }
       function render() {
+        const people = +$("people").value;
         const threshold = +$("threshold").value;
         const all = homes
           .map(calc)
@@ -747,6 +747,7 @@
               .includes(q)
           )
             return false;
+          if (h.capacity < people) return false;
           return true;
         });
         const sort = $("sort").value;
@@ -767,8 +768,22 @@
         $("loadCount").textContent =
           `${homes.length} annonce${homes.length !== 1 ? "s" : ""} chargée${homes.length !== 1 ? "s" : ""}`;
         const below = all.filter((h) => h.allInPerson <= threshold).length;
-        $("summary").innerHTML =
-          `<div class="metric"><small>Annonces chargées</small><strong>${homes.length}</strong></div><div class="metric"><small>Sous le seuil</small><strong>${below}</strong></div><div class="metric"><small>Résultats après filtres</small><strong>${list.length}</strong></div><div class="metric"><small>Seuil par personne</small><strong>${euro(threshold)}/mois</strong></div><div class="metric"><small>Mensualité minimale</small><strong>${all.length ? euro(Math.min(...all.map((h) => h.allInPerson))) : "—"}</strong></div>`;
+        $("summary").innerHTML = `<div class="metric">
+            <small>Annonces chargées</small>
+            <strong>${homes.length}</strong>
+          </div>
+          <div class="metric">
+            <small>Sous le seuil</small>
+            <strong>${below}</strong>
+          </div>
+          <div class="metric">
+            <small>Résultats après filtres</small>
+            <strong>${list.length}</strong>
+          </div>
+          <div class="metric"><small>Seuil par personne</small><strong>${euro(threshold)}/mois</strong>
+          </div>
+          <div class="metric"><small>Mensualité minimale</small><strong>${all.length ? euro(Math.min(...all.map((h) => h.allInPerson))) : "—"}</strong>
+          </div>`;
         $("tbody").innerHTML = list
           .map(
             (h, i) =>

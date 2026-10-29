@@ -22,8 +22,6 @@ LISTING_URL = (
 OUTPUT_CSV = Path("chateaux.csv")
 FAILED_LOG = Path("annonces_a_verifier.txt")
 
-# Limite de sécurité pour une première exécution.
-# Augmente-la uniquement après avoir vérifié les résultats.
 MAX_PAGES = 55
 
 # Pause entre les requêtes : ne pas surcharger le site.
