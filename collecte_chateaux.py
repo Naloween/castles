@@ -24,7 +24,7 @@ FAILED_LOG = Path("annonces_a_verifier.txt")
 
 # Limite de sécurité pour une première exécution.
 # Augmente-la uniquement après avoir vérifié les résultats.
-MAX_PAGES = 100
+MAX_PAGES = 55
 
 # Pause entre les requêtes : ne pas surcharger le site.
 DELAY_SECONDS = 2.5

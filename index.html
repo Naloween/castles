@@ -533,7 +533,7 @@
                 <th>Capacité indicative</th>
                 <th>Surface / pers.</th>
                 <th>Crédit total / mois</th>
-                <th>Crédit / personne / mois</th>
+                <th>Coût / personne / mois</th>
                 <th>Statut</th>
                 <th>Détails</th>
               </tr>
@@ -663,6 +663,16 @@
               : null;
         const tax = parseNum(h.taxe_fonciere_annonce),
           charges = parseNum(h.charges_annuelles_annonce);
+
+        const taxAnnual = tax != null ? tax : (h.price || 0) * 0.01;
+        const chargesAnnual =
+          charges != null ? charges : (h.price || 0) * 0.015;
+
+        // Coût mensuel global : crédit + taxe foncière + charges
+        const allInMonthly = payment + (taxAnnual + chargesAnnual) / 12;
+
+        // Coût mensuel par personne
+        const allInPerson = allInMonthly / people;
         return {
           ...h,
           fees,
@@ -672,8 +682,10 @@
           capacity,
           surfacePerson:
             capacity && h.surface != null ? h.surface / capacity : null,
-          taxAnnual: tax != null ? tax : (h.price || 0) * 0.01,
-          chargesAnnual: charges != null ? charges : (h.price || 0) * 0.015,
+          taxAnnual,
+          chargesAnnual,
+          allInMonthly,
+          allInPerson,
           taxEstimated: tax == null,
           chargesEstimated: charges == null,
         };
@@ -719,7 +731,7 @@
           minP = parseNum($("minPrice").value),
           maxP = parseNum($("maxPrice").value);
         let list = all.filter((h) => {
-          if ($("onlyAffordable").checked && h.paymentPerson > threshold)
+          if ($("onlyAffordable").checked && h.allInPerson > threshold)
             return false;
           if (minS != null && (h.surface == null || h.surface < minS))
             return false;
@@ -747,20 +759,20 @@
                 ? (b.bedrooms || 0) - (a.bedrooms || 0)
                 : sort === "capacity"
                   ? (b.capacity || 0) - (a.capacity || 0)
-                  : a.paymentPerson - b.paymentPerson,
+                  : a.allInPerson - b.allInPerson,
         );
         visibleHomes = list;
         $("count").textContent =
           `${list.length} bien${list.length !== 1 ? "s" : ""} affiché${list.length !== 1 ? "s" : ""}`;
         $("loadCount").textContent =
           `${homes.length} annonce${homes.length !== 1 ? "s" : ""} chargée${homes.length !== 1 ? "s" : ""}`;
-        const below = all.filter((h) => h.paymentPerson <= threshold).length;
+        const below = all.filter((h) => h.allInPerson <= threshold).length;
         $("summary").innerHTML =
-          `<div class="metric"><small>Annonces chargées</small><strong>${homes.length}</strong></div><div class="metric"><small>Sous le seuil</small><strong>${below}</strong></div><div class="metric"><small>Résultats après filtres</small><strong>${list.length}</strong></div><div class="metric"><small>Seuil par personne</small><strong>${euro(threshold)}/mois</strong></div><div class="metric"><small>Mensualité minimale</small><strong>${all.length ? euro(Math.min(...all.map((h) => h.paymentPerson))) : "—"}</strong></div>`;
+          `<div class="metric"><small>Annonces chargées</small><strong>${homes.length}</strong></div><div class="metric"><small>Sous le seuil</small><strong>${below}</strong></div><div class="metric"><small>Résultats après filtres</small><strong>${list.length}</strong></div><div class="metric"><small>Seuil par personne</small><strong>${euro(threshold)}/mois</strong></div><div class="metric"><small>Mensualité minimale</small><strong>${all.length ? euro(Math.min(...all.map((h) => h.allInPerson))) : "—"}</strong></div>`;
         $("tbody").innerHTML = list
           .map(
             (h, i) =>
-              `<tr><td><a href="${safeURL(h.lien_annonce)}" target="_blank" rel="noopener noreferrer">${esc(h.titre || h.id || "Annonce sans titre")}</a><div class="muted">ID ${esc(h.id || "—")}</div></td><td>${euro(h.price)}</td><td>${h.surface == null ? "—" : number(h.surface) + " m²"}</td><td>${h.rooms ?? "—"}</td><td>${h.bedrooms ?? "—"}</td><td>${h.capacity ?? "—"}</td><td>${h.surfacePerson == null ? "—" : number(h.surfacePerson) + " m²"}</td><td>${euro(h.payment)}</td><td><span class="payment ${h.paymentPerson <= threshold ? "ok" : "bad"}">${euro(h.paymentPerson)}</span></td><td><span class="pill ${h.paymentPerson <= threshold ? "ok" : "bad"}">${h.paymentPerson <= threshold ? "Sous le seuil" : "Au-dessus"}</span></td><td><button class="detail-btn" data-index="${i}">Détails</button></td></tr>`,
+              `<tr><td><a href="${safeURL(h.lien_annonce)}" target="_blank" rel="noopener noreferrer">${esc(h.titre || h.id || "Annonce sans titre")}</a><div class="muted">ID ${esc(h.id || "—")}</div></td><td>${euro(h.price)}</td><td>${h.surface == null ? "—" : number(h.surface) + " m²"}</td><td>${h.rooms ?? "—"}</td><td>${h.bedrooms ?? "—"}</td><td>${h.capacity ?? "—"}</td><td>${h.surfacePerson == null ? "—" : number(h.surfacePerson) + " m²"}</td><td>${euro(h.payment)}</td><td><span class="payment ${h.allInPerson <= threshold ? "ok" : "bad"}">${euro(h.allInPerson)}</span></td><td><span class="pill ${h.allInPerson <= threshold ? "ok" : "bad"}">${h.allInPerson <= threshold ? "Sous le seuil" : "Au-dessus"}</span></td><td><button class="detail-btn" data-index="${i}">Détails</button></td></tr>`,
           )
           .join("");
         $("empty").classList.toggle("hidden", list.length > 0);
@@ -774,7 +786,22 @@
       }
       function showDetails(h) {
         $("dialogContent").innerHTML =
-          `<h2>${esc(h.titre || "Détails du bien")}</h2><p><strong>Prix de référence :</strong> ${euro(h.price)}${String(h.titre || "").includes("à") && String(h.titre || "").includes("€") ? ' <span class="muted">(vérifier une éventuelle fourchette de prix dans l’annonce)</span>' : ""}</p><p><strong>Surface :</strong> ${h.surface == null ? "—" : number(h.surface) + " m²"} · <strong>Pièces :</strong> ${h.rooms ?? "—"} · <strong>Chambres :</strong> ${h.bedrooms ?? "—"}</p><hr><p><strong>Frais d'acquisition estimés :</strong> ${euro(h.fees)}</p><p><strong>Apport simulé :</strong> ${euro(+$("deposit").value)} · <strong>Capital emprunté :</strong> ${euro(h.principal)}</p><p><strong>Mensualité de crédit :</strong> ${euro(h.payment)} · <strong>Par personne :</strong> ${euro(h.paymentPerson)} / mois</p><p><strong>Capacité indicative :</strong> ${h.capacity ?? "—"} personnes · <strong>Surface par personne :</strong> ${h.surfacePerson == null ? "—" : number(h.surfacePerson) + " m²"}</p><hr><p><strong>Taxe foncière annuelle :</strong> ${euro(h.taxAnnual)} ${h.taxEstimated ? "(estimation : 1 % du prix)" : "(valeur annoncée)"}</p><p><strong>Charges annuelles :</strong> ${euro(h.chargesAnnual)} ${h.chargesEstimated ? "(estimation : 1,5 % du prix)" : "(valeur annoncée)"}</p><p><strong>Taxe + charges par personne / mois :</strong> ${euro((h.taxAnnual + h.chargesAnnual) / +$("people").value / 12)} (hors mensualité du crédit)</p><p class="muted">Description non fournie dans le CSV actuel. Les valeurs estimées sont à vérifier.</p>${h.lien_annonce ? `<p><a href="${safeURL(h.lien_annonce)}" target="_blank" rel="noopener noreferrer">Ouvrir l’annonce originale ↗</a></p>` : ""}`;
+          `<h2>${esc(h.titre || "Détails du bien")}</h2>
+          <p>
+            <strong>Prix de référence :</strong> ${euro(h.price)}${String(h.titre || "").includes("à") && String(h.titre || "").includes("€") ? ' <span class="muted">(vérifier une éventuelle fourchette de prix dans l’annonce)</span>' : ""}</p>
+          <p><strong>Surface :</strong> ${h.surface == null ? "—" : number(h.surface) + " m²"} · <strong>Pièces :</strong> ${h.rooms ?? "—"} · <strong>Chambres :</strong> ${h.bedrooms ?? "—"}</p>
+          <hr>
+          <p><strong>Frais d'acquisition estimés :</strong> ${euro(h.fees)}</p><p><strong>Apport simulé :</strong> ${euro(+$("deposit").value)} · <strong>Capital emprunté :</strong> ${euro(h.principal)}</p>
+          <p><strong>Mensualité de crédit :</strong> ${euro(h.payment)} · <strong>Par personne :</strong> ${euro(h.paymentPerson)} / mois</p>
+          <p><strong>Capacité indicative :</strong> ${h.capacity ?? "—"} personnes · <strong>Surface par personne :</strong> ${h.surfacePerson == null ? "—" : number(h.surfacePerson) + " m²"}</p>
+          <hr>
+          <p><strong>Taxe foncière annuelle :</strong> ${euro(h.taxAnnual)} ${h.taxEstimated ? "(estimation : 1 % du prix)" : "(valeur annoncée)"}</p>
+          <p><strong>Charges annuelles :</strong> ${euro(h.chargesAnnual)} ${h.chargesEstimated ? "(estimation : 1,5 % du prix)" : "(valeur annoncée)"}</p>
+          <p><strong>Taxe + charges par personne / mois :</strong> ${euro((h.taxAnnual + h.chargesAnnual) / +$("people").value / 12)} (hors mensualité du crédit)</p>
+          <hr>
+          <p><strong>Coût tout compris / mois :</strong> ${euro(h.allInMonthly)}</p>
+          <p><strong>Coût tout compris / personne / mois :</strong> ${euro(h.allInPerson)}</p>
+          <p class="muted">Description non fournie dans le CSV actuel. Les valeurs estimées sont à vérifier.</p>${h.lien_annonce ? `<p><a href="${safeURL(h.lien_annonce)}" target="_blank" rel="noopener noreferrer">Ouvrir l’annonce originale ↗</a></p>` : ""}`;
         $("detailDialog").showModal();
       }
       async function loadText(text, label) {
@@ -865,7 +892,7 @@
           h.bedrooms,
           h.lien_annonce,
           h.payment,
-          h.paymentPerson,
+          h.allInPerson,
           h.capacity,
         ]);
         const csv = [cols, ...rows]
