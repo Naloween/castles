@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Explorateur de châteaux — budget collectif</title>
+    <style>
+      :root {
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        color: #172033;
+        background: #f3f5f9;
+        --navy: #172b4d;
+        --blue: #2859a6;
+        --border: #dce3ed;
+        --muted: #64748b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      header {
+        background: linear-gradient(115deg, #152744, #294d7b);
+        color: #fff;
+        padding: 1.6rem clamp(1rem, 4vw, 3rem);
+      }
+      header h1 {
+        margin: 0 0 0.45rem;
+        font-size: clamp(1.55rem, 3vw, 2.35rem);
+      }
+      header p {
+        margin: 0;
+        color: #e1eaf7;
+        max-width: 850px;
+        line-height: 1.5;
+      }
+      main {
+        max-width: 1600px;
+        margin: auto;
+        padding: 1.15rem;
+      }
+      .panel,
+      .results {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 5px 20px #1c2d4a08;
+      }
+      .panel h2,
+      .results h2 {
+        margin: 0.1rem 0 1rem;
+        font-size: 1.15rem;
+      }
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+        gap: 1.1rem;
+      }
+      .control label {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        font-weight: 650;
+        margin-bottom: 0.55rem;
+      }
+      .control output {
+        font-weight: 750;
+        color: var(--blue);
+        white-space: nowrap;
+      }
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--blue);
+      }
+      input[type="number"],
+      input[type="search"],
+      select,
+      input[type="file"] {
+        width: 100%;
+        padding: 0.68rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        background: #fff;
+        color: inherit;
+      }
+      .filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+        gap: 0.9rem;
+        margin-top: 1.2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #edf0f5;
+      }
+      .field label {
+        display: block;
+        font-weight: 650;
+        font-size: 0.9rem;
+        margin-bottom: 0.4rem;
+      }
+      .checkline {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+      .checkline label {
+        font-weight: 600;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        align-items: center;
+      }
+      .button {
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        padding: 0.65rem 0.9rem;
+        background: #fff;
+        color: #172033;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .button.primary {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: #fff;
+      }
+      .notice {
+        border-radius: 11px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+      }
+      .notice.info {
+        background: #eaf2ff;
+        border: 1px solid #c8daf9;
+        color: #193b6a;
+      }
+      .notice.warn {
+        background: #fff6df;
+        border: 1px solid #efd68c;
+        color: #654b0b;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+        gap: 0.7rem;
+        margin-bottom: 1rem;
+      }
+      .metric {
+        background: #fff;
+        border: 1px solid var(--border);
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+      }
+      .metric small {
+        display: block;
+        color: var(--muted);
+        margin-bottom: 0.25rem;
+      }
+      .metric strong {
+        font-size: 1.22rem;
+      }
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid #e6ebf2;
+        border-radius: 10px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 0.91rem;
+      }
+      th,
+      td {
+        padding: 0.78rem 0.7rem;
+        border-bottom: 1px solid #e8edf4;
+        text-align: left;
+        white-space: nowrap;
+      }
+      th {
+        background: #f6f8fb;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        color: #35445c;
+      }
+      td:first-child {
+        white-space: normal;
+        min-width: 230px;
+        max-width: 360px;
+      }
+      tbody tr:hover {
+        background: #f9fbfe;
+      }
+      a {
+        color: #2458a6;
+        font-weight: 700;
+      }
+      .payment {
+        font-weight: 800;
+        border-radius: 8px;
+        padding: 0.35rem 0.5rem;
+        display: inline-block;
+      }
+      .ok {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .bad {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .unknown {
+        background: #eef2f7;
+        color: #475569;
+      }
+      .detail-btn {
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        border-radius: 7px;
+        padding: 0.42rem 0.65rem;
+        cursor: pointer;
+        font-weight: 650;
+      }
+      .empty {
+        text-align: center;
+        padding: 2.3rem;
+        color: var(--muted);
+      }
+      .status {
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+      }
+      .status.good {
+        color: #166534;
+      }
+      .status.error {
+        color: #991b1b;
+      }
+      .pill {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 0.2rem 0.55rem;
+        background: #eef2f7;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 750;
+      }
+      .pill.ok {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .pill.bad {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      dialog {
+        max-width: 780px;
+        width: calc(100% - 2rem);
+        max-height: 88vh;
+        overflow: auto;
+        border: 0;
+        border-radius: 16px;
+        padding: 1.4rem;
+        box-shadow: 0 15px 60px #0004;
+      }
+      dialog::backdrop {
+        background: #10203999;
+      }
+      dialog h2 {
+        margin-top: 0;
+      }
+      .dialog-close {
+        float: right;
+      }
+      .footnote {
+        line-height: 1.6;
+        margin: 1rem 0.2rem 2rem;
+      }
+      .hidden {
+        display: none !important;
+      }
+      @media (max-width: 600px) {
+        main {
+          padding: 0.65rem;
+        }
+        .panel,
+        .results {
+          padding: 0.8rem;
+        }
+        .controls {
+          grid-template-columns: 1fr;
+        }
+        .summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Châteaux à vendre · budget collectif</h1>
+      <p>
+        Explorez les annonces collectées et estimez le financement selon le
+        nombre de participants, l'apport, le taux et la durée du crédit. Les
+        résultats se recalculent automatiquement.
+      </p>
+    </header>
+    <main>
+      <div class="notice info">
+        <strong>Jeu de données chargé :</strong>
+        <span id="sourceLabel">chateaux.csv</span> ·
+        <span id="loadCount">chargement…</span>. Vous pouvez utiliser le CSV à
+        côté de cette page ou en sélectionner un autre ci-dessous.
+      </div>
+      <div class="notice warn">
+        <strong>À garder en tête :</strong> ce simulateur fournit un ordre de
+        grandeur, pas un conseil bancaire. Les frais d’acquisition, taxes et
+        charges sont estimés lorsqu’ils ne sont pas renseignés. Les annonces à
+        prix en fourchette peuvent être calculées sur le prix minimum détecté.
+        Vérifiez les montants et la disponibilité sur l’annonce originale.
+      </div>
+      <section class="panel">
+        <h2>1. Paramètres de financement</h2>
+        <div class="controls">
+          <div class="control">
+            <label for="people"
+              >Participants <output id="peopleOut">5</output></label
+            ><input
+              id="people"
+              type="range"
+              min="1"
+              max="30"
+              step="1"
+              value="5"
+            />
+          </div>
+          <div class="control">
+            <label for="rate"
+              >Taux annuel du crédit <output id="rateOut">3,25 %</output></label
+            ><input
+              id="rate"
+              type="range"
+              min="0"
+              max="8"
+              step="0.05"
+              value="3.25"
+            />
+          </div>
+          <div class="control">
+            <label for="years"
+              >Durée du prêt <output id="yearsOut">22 ans</output></label
+            ><input
+              id="years"
+              type="range"
+              min="5"
+              max="30"
+              step="1"
+              value="22"
+            />
+          </div>
+          <div class="control">
+            <label for="deposit"
+              >Apport total <output id="depositOut">50 000 €</output></label
+            ><input
+              id="deposit"
+              type="range"
+              min="0"
+              max="500000"
+              step="1000"
+              value="50000"
+            />
+          </div>
+          <div class="control">
+            <label for="notary"
+              >Frais d’acquisition estimés
+              <output id="notaryOut">8 %</output></label
+            ><input
+              id="notary"
+              type="range"
+              min="0"
+              max="12"
+              step="0.5"
+              value="8"
+            />
+          </div>
+          <div class="control">
+            <label for="threshold"
+              >Seuil mensuel / personne
+              <output id="thresholdOut">1 000 €/mois</output></label
+            ><input
+              id="threshold"
+              type="range"
+              min="100"
+              max="5000"
+              step="50"
+              value="1000"
+            />
+          </div>
+        </div>
+        <div class="checkline">
+          <input id="onlyAffordable" type="checkbox" checked /><label
+            for="onlyAffordable"
+            >N’afficher que les biens sous le seuil mensuel</label
+          >
+        </div>
+        <div class="muted">
+          Le seuil compare la mensualité de crédit par personne. Il n’inclut pas
+          l’assurance emprunteur, les travaux, les taxes ni les charges
+          courantes.
+        </div>
+      </section>
+      <section class="panel">
+        <h2>2. Filtres et données</h2>
+        <div class="filters">
+          <div class="field">
+            <label for="search">Recherche texte</label
+            ><input
+              id="search"
+              type="search"
+              placeholder="Ville, titre, identifiant…"
+            />
+          </div>
+          <div class="field">
+            <label for="minSurface">Surface minimale (m²)</label
+            ><input
+              id="minSurface"
+              type="number"
+              min="0"
+              step="10"
+              placeholder="Sans minimum"
+            />
+          </div>
+          <div class="field">
+            <label for="minBedrooms">Chambres minimum</label
+            ><input
+              id="minBedrooms"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="Sans minimum"
+            />
+          </div>
+          <div class="field">
+            <label for="minPrice">Prix minimum (€)</label
+            ><input
+              id="minPrice"
+              type="number"
+              min="0"
+              step="50000"
+              placeholder="Sans minimum"
+            />
+          </div>
+          <div class="field">
+            <label for="maxPrice">Prix maximum (€)</label
+            ><input
+              id="maxPrice"
+              type="number"
+              min="0"
+              step="50000"
+              placeholder="Sans maximum"
+            />
+          </div>
+          <div class="field">
+            <label for="sort">Trier par</label
+            ><select id="sort">
+              <option value="payment">Mensualité/personne croissante</option>
+              <option value="price">Prix croissant</option>
+              <option value="surface">Surface décroissante</option>
+              <option value="bedrooms">Nombre de chambres décroissant</option>
+              <option value="capacity">Capacité indicative décroissante</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="csvFile">Charger un autre CSV</label
+            ><input id="csvFile" type="file" accept=".csv,text/csv" />
+            <div class="muted">
+              Pratique si le navigateur ne peut pas lire le fichier local
+              automatiquement.
+            </div>
+          </div>
+          <div class="field">
+            <label>Actions</label>
+            <div class="actions">
+              <button class="button" id="reset">
+                Réinitialiser les filtres</button
+              ><button class="button primary" id="export">
+                Exporter les résultats
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="status" id="status" role="status"></div>
+      </section>
+      <div class="summary" id="summary"></div>
+      <section class="results">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 1rem;
+            flex-wrap: wrap;
+          "
+        >
+          <h2>Résultats</h2>
+          <span class="muted" id="count">0 bien</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Annonce</th>
+                <th>Prix</th>
+                <th>Surface</th>
+                <th>Pièces</th>
+                <th>Chambres</th>
+                <th>Capacité indicative</th>
+                <th>Surface / pers.</th>
+                <th>Crédit total / mois</th>
+                <th>Crédit / personne / mois</th>
+                <th>Statut</th>
+                <th>Détails</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div id="empty" class="empty hidden">
+          Aucun résultat. Modifiez les filtres ou le seuil.
+        </div>
+      </section>
+      <p class="muted footnote">
+        <strong>Hypothèses de calcul :</strong> frais d’acquisition calculés en
+        pourcentage du prix ; mensualité de crédit amortissable, hors assurance
+        et frais bancaires. La capacité indicative est de 2 personnes par
+        chambre renseignée (ce n’est pas une recommandation d’hébergement). Si
+        la taxe foncière ou les charges sont absentes, les estimations sont
+        respectivement de 1 % et 1,5 % du prix par an ; elles sont présentées
+        dans les détails mais ne sont pas incluses dans le seuil de mensualité.
+        Les colonnes `description` et `tags` ne sont pas renseignées dans le CSV
+        actuel.
+      </p>
+    </main>
+    <dialog id="detailDialog">
+      <button class="detail-btn dialog-close" id="closeDialog">Fermer</button>
+      <div id="dialogContent"></div>
+    </dialog>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      let homes = [],
+        visibleHomes = [];
+      const euro = (n) =>
+        Number.isFinite(n)
+          ? new Intl.NumberFormat("fr-FR", {
+              style: "currency",
+              currency: "EUR",
+              maximumFractionDigits: 0,
+            }).format(n)
+          : "—";
+      const number = (n) =>
+        Number.isFinite(n)
+          ? new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(
+              n,
+            )
+          : "—";
+      function parseNum(v) {
+        if (v == null || String(v).trim() === "") return null;
+        let s = String(v)
+          .trim()
+          .replace(/[\s\u00a0\u202f]/g, "")
+          .replace(/€/g, "")
+          .replace(/m²/gi, "")
+          .replace(/,/g, ".");
+        let n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      }
+      function parseCSV(text) {
+        const rows = [];
+        let row = [],
+          field = "",
+          quoted = false;
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i];
+          if (quoted) {
+            if (c === '"' && text[i + 1] === '"') {
+              field += '"';
+              i++;
+            } else if (c === '"') quoted = false;
+            else field += c;
+          } else if (c === '"') quoted = true;
+          else if (c === ",") {
+            row.push(field);
+            field = "";
+          } else if (c === "\n") {
+            row.push(field);
+            rows.push(row);
+            row = [];
+            field = "";
+          } else if (c !== "\r") field += c;
+        }
+        if (field.length || row.length) {
+          row.push(field);
+          rows.push(row);
+        }
+        if (!rows.length) return [];
+        const headers = rows
+          .shift()
+          .map((h) => h.trim().replace(/^\uFEFF/, ""));
+        return rows
+          .filter((r) => r.some((x) => x.trim()))
+          .map((r) =>
+            Object.fromEntries(headers.map((h, i) => [h, (r[i] || "").trim()])),
+          );
+      }
+      function normalize(row) {
+        return {
+          ...row,
+          price: parseNum(row.prix_achat),
+          surface: parseNum(row.surface_m2),
+          rooms: parseNum(row.nb_pieces),
+          bedrooms: parseNum(row.nb_chambres),
+          id: String(row.id_annonce || "").trim(),
+        };
+      }
+      function loanPayment(principal, annualRate, years) {
+        if (principal <= 0) return 0;
+        const r = annualRate / 1200,
+          n = years * 12;
+        return r === 0
+          ? principal / n
+          : (principal * r) / (1 - Math.pow(1 + r, -n));
+      }
+      function calc(h) {
+        const people = +$("people").value,
+          rate = +$("rate").value,
+          years = +$("years").value,
+          deposit = +$("deposit").value,
+          notary = +$("notary").value;
+        const fees = ((h.price || 0) * notary) / 100;
+        const principal = Math.max(0, (h.price || 0) + fees - deposit);
+        const payment = loanPayment(principal, rate, years);
+        const capacity =
+          h.bedrooms > 0
+            ? h.bedrooms * 2
+            : h.rooms > 0
+              ? Math.floor(h.rooms / 2) * 2
+              : null;
+        const tax = parseNum(h.taxe_fonciere_annonce),
+          charges = parseNum(h.charges_annuelles_annonce);
+        return {
+          ...h,
+          fees,
+          principal,
+          payment,
+          paymentPerson: payment / people,
+          capacity,
+          surfacePerson:
+            capacity && h.surface != null ? h.surface / capacity : null,
+          taxAnnual: tax != null ? tax : (h.price || 0) * 0.01,
+          chargesAnnual: charges != null ? charges : (h.price || 0) * 0.015,
+          taxEstimated: tax == null,
+          chargesEstimated: charges == null,
+        };
+      }
+      function esc(s) {
+        return String(s ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      }
+      function safeURL(s) {
+        return /^https:\/\/www\.bellesdemeures\.com\//i.test(String(s || ""))
+          ? esc(s)
+          : "#";
+      }
+      function updateLabels() {
+        $("peopleOut").textContent = $("people").value;
+        $("rateOut").textContent =
+          (+$("rate").value).toLocaleString("fr-FR", {
+            maximumFractionDigits: 2,
+          }) + " %";
+        $("yearsOut").textContent = $("years").value + " ans";
+        $("depositOut").textContent = euro(+$("deposit").value);
+        $("notaryOut").textContent =
+          (+$("notary").value).toLocaleString("fr-FR") + " %";
+        $("thresholdOut").textContent = euro(+$("threshold").value) + "/mois";
+      }
+      function render() {
+        const threshold = +$("threshold").value;
+        const all = homes
+          .map(calc)
+          .filter((h) => h.price != null && h.price > 0);
+        const q = $("search").value.trim().toLocaleLowerCase("fr");
+        const minS = parseNum($("minSurface").value),
+          minB = parseNum($("minBedrooms").value),
+          minP = parseNum($("minPrice").value),
+          maxP = parseNum($("maxPrice").value);
+        let list = all.filter((h) => {
+          if ($("onlyAffordable").checked && h.paymentPerson > threshold)
+            return false;
+          if (minS != null && (h.surface == null || h.surface < minS))
+            return false;
+          if (minB != null && (h.bedrooms == null || h.bedrooms < minB))
+            return false;
+          if (minP != null && h.price < minP) return false;
+          if (maxP != null && h.price > maxP) return false;
+          if (
+            q &&
+            ![h.titre, h.description, h.id, h.lien_annonce]
+              .join(" ")
+              .toLocaleLowerCase("fr")
+              .includes(q)
+          )
+            return false;
+          return true;
+        });
+        const sort = $("sort").value;
+        list.sort((a, b) =>
+          sort === "price"
+            ? a.price - b.price
+            : sort === "surface"
+              ? (b.surface || 0) - (a.surface || 0)
+              : sort === "bedrooms"
+                ? (b.bedrooms || 0) - (a.bedrooms || 0)
+                : sort === "capacity"
+                  ? (b.capacity || 0) - (a.capacity || 0)
+                  : a.paymentPerson - b.paymentPerson,
+        );
+        visibleHomes = list;
+        $("count").textContent =
+          `${list.length} bien${list.length !== 1 ? "s" : ""} affiché${list.length !== 1 ? "s" : ""}`;
+        $("loadCount").textContent =
+          `${homes.length} annonce${homes.length !== 1 ? "s" : ""} chargée${homes.length !== 1 ? "s" : ""}`;
+        const below = all.filter((h) => h.paymentPerson <= threshold).length;
+        $("summary").innerHTML =
+          `<div class="metric"><small>Annonces chargées</small><strong>${homes.length}</strong></div><div class="metric"><small>Sous le seuil</small><strong>${below}</strong></div><div class="metric"><small>Résultats après filtres</small><strong>${list.length}</strong></div><div class="metric"><small>Seuil par personne</small><strong>${euro(threshold)}/mois</strong></div><div class="metric"><small>Mensualité minimale</small><strong>${all.length ? euro(Math.min(...all.map((h) => h.paymentPerson))) : "—"}</strong></div>`;
+        $("tbody").innerHTML = list
+          .map(
+            (h, i) =>
+              `<tr><td><a href="${safeURL(h.lien_annonce)}" target="_blank" rel="noopener noreferrer">${esc(h.titre || h.id || "Annonce sans titre")}</a><div class="muted">ID ${esc(h.id || "—")}</div></td><td>${euro(h.price)}</td><td>${h.surface == null ? "—" : number(h.surface) + " m²"}</td><td>${h.rooms ?? "—"}</td><td>${h.bedrooms ?? "—"}</td><td>${h.capacity ?? "—"}</td><td>${h.surfacePerson == null ? "—" : number(h.surfacePerson) + " m²"}</td><td>${euro(h.payment)}</td><td><span class="payment ${h.paymentPerson <= threshold ? "ok" : "bad"}">${euro(h.paymentPerson)}</span></td><td><span class="pill ${h.paymentPerson <= threshold ? "ok" : "bad"}">${h.paymentPerson <= threshold ? "Sous le seuil" : "Au-dessus"}</span></td><td><button class="detail-btn" data-index="${i}">Détails</button></td></tr>`,
+          )
+          .join("");
+        $("empty").classList.toggle("hidden", list.length > 0);
+        $("tbody")
+          .querySelectorAll("button[data-index]")
+          .forEach((b) =>
+            b.addEventListener("click", () =>
+              showDetails(list[+b.dataset.index]),
+            ),
+          );
+      }
+      function showDetails(h) {
+        $("dialogContent").innerHTML =
+          `<h2>${esc(h.titre || "Détails du bien")}</h2><p><strong>Prix de référence :</strong> ${euro(h.price)}${String(h.titre || "").includes("à") && String(h.titre || "").includes("€") ? ' <span class="muted">(vérifier une éventuelle fourchette de prix dans l’annonce)</span>' : ""}</p><p><strong>Surface :</strong> ${h.surface == null ? "—" : number(h.surface) + " m²"} · <strong>Pièces :</strong> ${h.rooms ?? "—"} · <strong>Chambres :</strong> ${h.bedrooms ?? "—"}</p><hr><p><strong>Frais d'acquisition estimés :</strong> ${euro(h.fees)}</p><p><strong>Apport simulé :</strong> ${euro(+$("deposit").value)} · <strong>Capital emprunté :</strong> ${euro(h.principal)}</p><p><strong>Mensualité de crédit :</strong> ${euro(h.payment)} · <strong>Par personne :</strong> ${euro(h.paymentPerson)} / mois</p><p><strong>Capacité indicative :</strong> ${h.capacity ?? "—"} personnes · <strong>Surface par personne :</strong> ${h.surfacePerson == null ? "—" : number(h.surfacePerson) + " m²"}</p><hr><p><strong>Taxe foncière annuelle :</strong> ${euro(h.taxAnnual)} ${h.taxEstimated ? "(estimation : 1 % du prix)" : "(valeur annoncée)"}</p><p><strong>Charges annuelles :</strong> ${euro(h.chargesAnnual)} ${h.chargesEstimated ? "(estimation : 1,5 % du prix)" : "(valeur annoncée)"}</p><p><strong>Taxe + charges par personne / mois :</strong> ${euro((h.taxAnnual + h.chargesAnnual) / +$("people").value / 12)} (hors mensualité du crédit)</p><p class="muted">Description non fournie dans le CSV actuel. Les valeurs estimées sont à vérifier.</p>${h.lien_annonce ? `<p><a href="${safeURL(h.lien_annonce)}" target="_blank" rel="noopener noreferrer">Ouvrir l’annonce originale ↗</a></p>` : ""}`;
+        $("detailDialog").showModal();
+      }
+      async function loadText(text, label) {
+        const parsed = parseCSV(text);
+        homes = parsed
+          .map(normalize)
+          .filter((h) => h.price != null || h.titre || h.lien_annonce);
+        $("sourceLabel").textContent = label;
+        const bad = homes.filter(
+          (h) =>
+            !h.lien_annonce ||
+            !/^https:\/\/www\.bellesdemeures\.com\//i.test(h.lien_annonce),
+        ).length;
+        $("status").className = "status " + (homes.length ? "good" : "error");
+        $("status").textContent = homes.length
+          ? `${homes.length} annonces importées${bad ? ` · ${bad} lien(s) à vérifier` : ""}.`
+          : "Aucune ligne exploitable détectée. Vérifiez les colonnes du CSV.";
+        updateLabels();
+        render();
+      }
+      async function autoLoad() {
+        try {
+          const r = await fetch("./chateaux.csv", { cache: "no-store" });
+          if (!r.ok) throw Error("fichier absent");
+          await loadText(await r.text(), "chateaux.csv");
+        } catch (e) {
+          $("sourceLabel").textContent = "aucun fichier chargé automatiquement";
+          $("loadCount").textContent = "en attente du CSV";
+          $("status").className = "status";
+          $("status").textContent =
+            "Sélectionnez votre fichier CSV dans « Charger un autre CSV » ci-dessus, ou lancez un serveur local dans le dossier des deux fichiers.";
+          updateLabels();
+          render();
+        }
+      }
+      $("csvFile").addEventListener("change", async (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (f) await loadText(await f.text(), f.name);
+      });
+      ["people", "rate", "years", "deposit", "notary", "threshold"].forEach(
+        (id) =>
+          $(id).addEventListener("input", () => {
+            updateLabels();
+            render();
+          }),
+      );
+      [
+        "search",
+        "minSurface",
+        "minBedrooms",
+        "minPrice",
+        "maxPrice",
+        "sort",
+        "onlyAffordable",
+      ].forEach((id) =>
+        $(id).addEventListener(id === "search" ? "input" : "change", render),
+      );
+      $("closeDialog").addEventListener("click", () =>
+        $("detailDialog").close(),
+      );
+      $("reset").addEventListener("click", () => {
+        ["search", "minSurface", "minBedrooms", "minPrice", "maxPrice"].forEach(
+          (id) => ($(id).value = ""),
+        );
+        $("sort").value = "payment";
+        $("onlyAffordable").checked = true;
+        render();
+      });
+      $("export").addEventListener("click", () => {
+        const cols = [
+          "id_annonce",
+          "titre",
+          "prix_achat",
+          "surface_m2",
+          "nb_pieces",
+          "nb_chambres",
+          "lien_annonce",
+          "mensualite_credit",
+          "mensualite_par_personne",
+          "capacite_indicative",
+        ];
+        const rows = visibleHomes.map((h) => [
+          h.id_annonce,
+          h.titre,
+          h.price,
+          h.surface,
+          h.rooms,
+          h.bedrooms,
+          h.lien_annonce,
+          h.payment,
+          h.paymentPerson,
+          h.capacity,
+        ]);
+        const csv = [cols, ...rows]
+          .map((r) =>
+            r
+              .map((v) => '"' + String(v ?? "").replace(/"/g, '""') + '"')
+              .join(","),
+          )
+          .join("\r\n");
+        const blob = new Blob(["\uFEFF" + csv], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "chateaux_resultats_filtres.csv";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+      updateLabels();
+      autoLoad();
+    </script>
+  </body>
+</html>
